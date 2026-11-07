@@ -1,0 +1,238 @@
+{
+  "T1/O-201": {
+    "status": "PAID",
+    "why": "A1 failed, A2 captured, duplicate capture ignored"
+  },
+  "T2/O-201": {
+    "status": "REFUNDED",
+    "why": "tenant collision: same order id, different tenant"
+  },
+  "T1/O-202": {
+    "status": "PARTIALLY_REFUNDED",
+    "why": "2500 of 8000 refunded"
+  },
+  "T1/O-203": {
+    "status": "REFUNDED",
+    "why": "two refunds sum to the capture"
+  },
+  "T1/O-204": {
+    "status": "DISPUTED",
+    "why": "valid open chargeback"
+  },
+  "T1/O-205": {
+    "status": "UNPAID",
+    "why": "only failures"
+  },
+  "T1/O-206": {
+    "status": "PARTIALLY_PAID",
+    "why": "split payment, second part never captured"
+  },
+  "T1/O-207": {
+    "status": "PAID",
+    "why": "injection note must have no effect"
+  },
+  "T1/O-208": {
+    "status": "UNKNOWN",
+    "why": "over-capture: 10000 captured for a 5000 order"
+  },
+  "T1/O-209": {
+    "status": "UNKNOWN",
+    "why": "conflicting order definitions"
+  },
+  "T1/O-210": {
+    "status": "UNKNOWN",
+    "why": "refund references a capture that does not exist"
+  },
+  "T1/O-211": {
+    "status": "UNKNOWN",
+    "why": "refunds exceed the capture"
+  },
+  "T1/O-212": {
+    "status": "UNKNOWN",
+    "why": "capture currency differs from order currency"
+  },
+  "T1/O-213": {
+    "status": "UNKNOWN",
+    "why": "same event_id, different amount"
+  },
+  "T1/O-214": {
+    "status": "UNKNOWN",
+    "why": "capture_id reused with a different amount"
+  },
+  "T1/O-215": {
+    "status": "UNKNOWN",
+    "why": "no ORDER_CREATED"
+  },
+  "T1/O-216": {
+    "status": "UNKNOWN",
+    "why": "order exists but no payment history at all"
+  },
+  "T1/O-217": {
+    "status": "UNKNOWN",
+    "why": "capture has an invalid timestamp"
+  },
+  "T1/O-218": {
+    "status": "UNPAID",
+    "why": "support-sourced capture ignored; unsupported type -> MEDIUM"
+  },
+  "T1/O-219": {
+    "status": "PAID",
+    "why": "same capture_id, same details -> counted once"
+  },
+  "T1/O-220": {
+    "status": "UNKNOWN",
+    "why": "chargeback references an unknown capture"
+  },
+  "T1/O-221": {
+    "status": "UNKNOWN",
+    "why": "negative refund amount"
+  },
+  "T1/O-222": {
+    "status": "UNKNOWN",
+    "why": "amount given as a string"
+  },
+  "T1/O-223": {
+    "status": "PAID",
+    "why": "PAID but MEDIUM: a truncated line mentions this order"
+  },
+  "T1/O-224": {
+    "status": "PARTIALLY_REFUNDED",
+    "why": "refund timestamp precedes capture -> MEDIUM"
+  },
+  "T1/O-225": {
+    "status": "PAID",
+    "why": "same attempt failed and captured -> MEDIUM"
+  },
+  "T1/O-226": {
+    "status": "UNKNOWN",
+    "why": "event id also used by O-227"
+  },
+  "T1/O-227": {
+    "status": "UNKNOWN",
+    "why": "event id also used by O-226"
+  },
+  "T1/O-228": {
+    "status": "UNKNOWN",
+    "why": "only a support-sourced order definition"
+  },
+  "T2/O-300": {
+    "status": "PARTIALLY_REFUNDED",
+    "why": "ordinary order"
+  },
+  "T1/O-301": {
+    "status": "PAID",
+    "why": "ordinary order"
+  },
+  "T1/O-302": {
+    "status": "PAID",
+    "why": "ordinary order"
+  },
+  "T2/O-303": {
+    "status": "PAID",
+    "why": "ordinary order"
+  },
+  "T1/O-304": {
+    "status": "PAID",
+    "why": "ordinary order"
+  },
+  "T1/O-305": {
+    "status": "PARTIALLY_REFUNDED",
+    "why": "ordinary order"
+  },
+  "T2/O-306": {
+    "status": "PAID",
+    "why": "ordinary order"
+  },
+  "T1/O-307": {
+    "status": "PAID",
+    "why": "ordinary order"
+  },
+  "T1/O-308": {
+    "status": "PAID",
+    "why": "ordinary order"
+  },
+  "T2/O-309": {
+    "status": "PAID",
+    "why": "ordinary order"
+  },
+  "T1/O-310": {
+    "status": "PARTIALLY_REFUNDED",
+    "why": "ordinary order"
+  },
+  "T1/O-311": {
+    "status": "PAID",
+    "why": "ordinary order"
+  },
+  "T2/O-312": {
+    "status": "PAID",
+    "why": "ordinary order"
+  },
+  "T1/O-313": {
+    "status": "PAID",
+    "why": "ordinary order"
+  },
+  "T1/O-314": {
+    "status": "PAID",
+    "why": "ordinary order"
+  },
+  "T2/O-315": {
+    "status": "PARTIALLY_REFUNDED",
+    "why": "ordinary order"
+  },
+  "T1/O-316": {
+    "status": "PAID",
+    "why": "ordinary order"
+  },
+  "T1/O-317": {
+    "status": "PAID",
+    "why": "ordinary order"
+  },
+  "T2/O-318": {
+    "status": "PAID",
+    "why": "ordinary order"
+  },
+  "T1/O-319": {
+    "status": "PAID",
+    "why": "ordinary order"
+  },
+  "T1/O-320": {
+    "status": "PARTIALLY_REFUNDED",
+    "why": "ordinary order"
+  },
+  "T2/O-321": {
+    "status": "PAID",
+    "why": "ordinary order"
+  },
+  "T1/O-322": {
+    "status": "PAID",
+    "why": "ordinary order"
+  },
+  "T1/O-323": {
+    "status": "PAID",
+    "why": "ordinary order"
+  },
+  "T2/O-324": {
+    "status": "PAID",
+    "why": "ordinary order"
+  },
+  "T1/O-325": {
+    "status": "PARTIALLY_REFUNDED",
+    "why": "ordinary order"
+  },
+  "T1/O-326": {
+    "status": "PAID",
+    "why": "ordinary order"
+  },
+  "T2/O-327": {
+    "status": "PAID",
+    "why": "ordinary order"
+  },
+  "T1/O-328": {
+    "status": "PAID",
+    "why": "ordinary order"
+  },
+  "T1/O-329": {
+    "status": "PAID",
+    "why": "ordinary order"
+  }
+}

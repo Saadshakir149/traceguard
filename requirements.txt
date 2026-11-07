@@ -1,0 +1,4 @@
+# Runtime: standard library only (Python 3.11+).
+# Test-only dependencies:
+pytest>=8
+hypothesis>=6.100

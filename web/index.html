@@ -1,0 +1,566 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>TraceGuard</title>
+<style>
+:root {
+  --bg: #f6f7f9; --panel: #ffffff; --text: #1b1f24; --muted: #5f6b7a; --line: #e2e6eb;
+  --accent: #2856d8; --accent-soft: #e8eefc;
+  --ok: #1a7f4b; --ok-soft: #e3f4ea; --warn: #9a6200; --warn-soft: #fbf1dc;
+  --err: #b3261e; --err-soft: #fbe6e4; --info: #45617d; --info-soft: #e9eff5;
+  --violet: #6b3fb8; --violet-soft: #efe8fa; --teal: #0e7470; --teal-soft: #ddf3f1;
+  --orange: #b4500b; --orange-soft: #fdeadc; --pink: #a8306b; --pink-soft: #fbe5f0;
+  --mono: ui-monospace, SFMono-Regular, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #111418; --panel: #191d23; --text: #e6e9ee; --muted: #93a0b0; --line: #2a3039;
+    --accent: #7c9cff; --accent-soft: #1f2a44;
+    --ok: #5cc98d; --ok-soft: #15301f; --warn: #e3b55a; --warn-soft: #33290f;
+    --err: #ff8a80; --err-soft: #3a1714; --info: #9fb6cc; --info-soft: #1d2732;
+    --violet: #b79bf0; --violet-soft: #2a2140; --teal: #5fd0c8; --teal-soft: #12302e;
+    --orange: #ffa66b; --orange-soft: #3a2312; --pink: #f08cbf; --pink-soft: #3a1729;
+  }
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--text);
+  font: 14px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif; }
+button { font: inherit; color: inherit; }
+header { display: flex; align-items: baseline; gap: 6px 16px; flex-wrap: wrap;
+  padding: 14px 20px; border-bottom: 1px solid var(--line); background: var(--panel); }
+header h1 { margin: 0; font-size: 18px; }
+header .meta { color: var(--muted); font-size: 13px; display: flex; gap: 4px 12px; flex-wrap: wrap; align-items: baseline; }
+.link { background: none; border: 0; color: var(--accent); cursor: pointer; padding: 0; font-size: 13px;
+  text-decoration: underline dotted; }
+#inputReport { margin: 12px 20px 0; }
+main { display: grid; grid-template-columns: 300px minmax(0, 1fr); gap: 16px; padding: 16px 20px; }
+@media (max-width: 860px) { main { grid-template-columns: 1fr; padding: 12px 16px; } }
+.panel { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 14px; }
+h2 { font-size: 12px; text-transform: uppercase; letter-spacing: .6px; color: var(--muted); margin: 0 0 10px; }
+.stats { display: grid; grid-template-columns: repeat(auto-fill, minmax(118px, 1fr)); gap: 8px; padding: 16px 20px 0; }
+.stat { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px;
+  cursor: pointer; text-align: left; border-top: 3px solid var(--line); }
+.stat b { display: block; font-size: 22px; font-variant-numeric: tabular-nums; }
+.stat span { font-size: 12px; color: var(--muted); }
+.stat[aria-pressed="true"] { border-color: var(--accent); background: var(--accent-soft); box-shadow: 0 0 0 1px var(--accent); }
+.stat[aria-pressed="true"] span::after { content: " · filtering"; color: var(--accent); font-weight: 600; }
+.stat.st-PAID { border-top-color: var(--ok); } .stat.st-UNKNOWN, .stat.st-UNPAID { border-top-color: var(--err); }
+.stat.st-PARTIALLY_PAID, .stat.st-PARTIALLY_REFUNDED { border-top-color: var(--warn); }
+.stat.st-REFUNDED { border-top-color: var(--info); } .stat.st-DISPUTED { border-top-color: var(--violet); }
+input[type=text], select { width: 100%; padding: 7px 9px; border: 1px solid var(--line); border-radius: 7px;
+  background: var(--bg); font: inherit; color: inherit; }
+.filterbar { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-top: 10px;
+  padding: 6px 10px; border-radius: 7px; background: var(--accent-soft); color: var(--accent); font-size: 13px; }
+.filterbar button { background: none; border: 0; color: var(--accent); cursor: pointer; font-weight: 600; }
+.order-list { list-style: none; margin: 10px 0 0; padding: 0; max-height: calc(100vh - 320px); overflow: auto; }
+@media (max-width: 860px) { .order-list { max-height: 260px; } }
+.order-list li button { width: 100%; display: flex; justify-content: space-between; align-items: center; gap: 8px;
+  padding: 7px 8px; border: 0; border-left: 3px solid transparent; border-radius: 0 7px 7px 0;
+  background: none; cursor: pointer; text-align: left; }
+.order-list li button:hover { background: var(--bg); }
+.order-list li button[aria-current="true"] { background: var(--accent-soft); border-left-color: var(--accent); }
+.order-list small { color: var(--muted); }
+.dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-left: 6px; vertical-align: middle; }
+.dot.error { background: var(--err); } .dot.warning { background: var(--warn); } .dot.info { background: var(--info); opacity: .5; }
+.pill { display: inline-block; padding: 1px 8px; border-radius: 999px; font-size: 12px; font-weight: 600; white-space: nowrap; }
+.s-PAID, .c-HIGH { background: var(--ok-soft); color: var(--ok); }
+.s-PARTIALLY_PAID, .s-PARTIALLY_REFUNDED, .c-MEDIUM { background: var(--warn-soft); color: var(--warn); }
+.s-REFUNDED { background: var(--info-soft); color: var(--info); }
+.s-UNPAID, .s-UNKNOWN, .c-LOW { background: var(--err-soft); color: var(--err); }
+.s-DISPUTED { background: var(--violet-soft); color: var(--violet); }
+.sev-error { background: var(--err-soft); color: var(--err); }
+.sev-warning { background: var(--warn-soft); color: var(--warn); }
+.sev-info { background: var(--info-soft); color: var(--info); }
+.stack { display: grid; gap: 14px; min-width: 0; }
+.notice { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap;
+  padding: 10px 14px; border-radius: 10px; background: var(--warn-soft); color: var(--warn); border: 1px solid var(--warn); }
+.notice button { background: var(--panel); border: 1px solid var(--warn); color: var(--warn); border-radius: 6px;
+  padding: 3px 10px; cursor: pointer; font-weight: 600; }
+.ask { display: grid; gap: 10px; }
+.ask-row { display: flex; gap: 8px; }
+.ask-row input { flex: 1; }
+.btn { padding: 7px 14px; border-radius: 7px; border: 1px solid var(--accent); background: var(--accent);
+  color: #fff; cursor: pointer; font-weight: 600; }
+.btn:disabled { opacity: .6; cursor: progress; }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip { padding: 3px 10px; border-radius: 999px; border: 1px solid var(--line); background: var(--bg); cursor: pointer; font-size: 12px; }
+details > summary { cursor: pointer; }
+details.sim summary { color: var(--muted); font-size: 13px; }
+.sim-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 8px; margin-top: 8px; }
+.sim-grid label { font-size: 12px; color: var(--muted); display: grid; gap: 3px; }
+.headline { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.headline .pill { font-size: 15px; padding: 3px 12px; }
+.metagrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px 16px;
+  margin: 12px 0 0; padding: 10px 0 0; border-top: 1px solid var(--line); }
+.metagrid div span { display: block; font-size: 11px; text-transform: uppercase; letter-spacing: .5px; color: var(--muted); }
+.metagrid div b { font-weight: 600; font-size: 13px; word-break: break-word; }
+.metagrid .wide { grid-column: 1 / -1; }
+.totals { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 12px; }
+.total { border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; }
+.total span { font-size: 12px; color: var(--muted); display: block; }
+.total b { font-size: 18px; font-variant-numeric: tabular-nums; }
+.total b.null { color: var(--muted); font-weight: 500; font-family: var(--mono); }
+.explanation { margin: 12px 0 0; }
+.ids { display: flex; flex-wrap: wrap; gap: 6px; }
+.id { font-family: var(--mono); font-size: 12px; padding: 2px 7px; border-radius: 5px;
+  background: var(--accent-soft); color: var(--accent); border: 0; cursor: pointer; }
+/* anomalies */
+.anoms { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.anom { display: grid; grid-template-columns: 34px 1fr; gap: 2px 10px; padding: 10px; border-radius: 8px;
+  border: 1px solid var(--line); border-left: 4px solid var(--cat); background: var(--panel); }
+.anom .ico { grid-row: span 2; width: 30px; height: 30px; border-radius: 8px; display: grid; place-items: center;
+  font-weight: 700; font-size: 15px; background: var(--cat-soft); color: var(--cat); }
+.anom .top { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.anom .cat { font-size: 12px; font-weight: 700; color: var(--cat); }
+.anom code { font-family: var(--mono); font-size: 12px; color: var(--muted); }
+.anom p { margin: 0; }
+.anom .ids { grid-column: 2; margin-top: 4px; }
+.summary-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
+.cat-chip { font-size: 12px; font-weight: 600; padding: 2px 8px; border-radius: 6px; background: var(--cat-soft); color: var(--cat); }
+/* timeline */
+.timeline { list-style: none; margin: 0; padding: 0; position: relative; }
+.timeline::before { content: ""; position: absolute; left: 15px; top: 6px; bottom: 6px; width: 2px; background: var(--line); }
+.tl { position: relative; display: grid; grid-template-columns: 32px 1fr; gap: 12px; padding: 6px 0; }
+.tl .node { width: 32px; height: 32px; border-radius: 50%; display: grid; place-items: center; font-weight: 700;
+  background: var(--kind-soft); color: var(--kind); border: 2px solid var(--panel); position: relative; z-index: 1; }
+.tl .body { border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; cursor: pointer; min-width: 0; }
+.tl .body:hover { background: var(--bg); }
+.tl.hl .body { outline: 2px solid var(--accent); }
+.tl.dim .body { opacity: .72; }
+.tl .row1 { display: flex; flex-wrap: wrap; gap: 4px 8px; align-items: baseline; }
+.tl .title { font-weight: 600; }
+.tl .amt { font-variant-numeric: tabular-nums; font-weight: 600; }
+.tl .when { margin-left: auto; color: var(--muted); font-size: 12px; font-family: var(--mono); }
+.tl .sub { color: var(--muted); font-size: 12px; font-family: var(--mono); word-break: break-word; }
+.tl .text { margin-top: 4px; font-size: 13px; font-style: italic; }
+.tl pre { margin-top: 8px; }
+.tag { font-size: 11px; padding: 0 6px; border-radius: 4px; font-weight: 600; }
+.tag.ev { background: var(--ok-soft); color: var(--ok); }
+.tag.ign { background: var(--info-soft); color: var(--info); }
+.tag.bad { background: var(--err-soft); color: var(--err); }
+.tag.warn { background: var(--warn-soft); color: var(--warn); }
+.k-order { --kind: var(--accent); --kind-soft: var(--accent-soft); }
+.k-fail { --kind: var(--err); --kind-soft: var(--err-soft); }
+.k-cap { --kind: var(--ok); --kind-soft: var(--ok-soft); }
+.k-ref { --kind: var(--teal); --kind-soft: var(--teal-soft); }
+.k-cb { --kind: var(--violet); --kind-soft: var(--violet-soft); }
+.k-note { --kind: var(--muted); --kind-soft: var(--bg); }
+.k-other { --kind: var(--warn); --kind-soft: var(--warn-soft); }
+.legend { display: flex; flex-wrap: wrap; gap: 10px; font-size: 12px; color: var(--muted); margin-bottom: 10px; }
+.legend span { display: inline-flex; align-items: center; gap: 4px; }
+.legend i { width: 10px; height: 10px; border-radius: 50%; background: var(--kind); display: inline-block; }
+/* tool calls */
+.tool { border: 1px solid var(--line); border-radius: 8px; margin-bottom: 8px; }
+.tool > summary { list-style: none; display: flex; gap: 8px; align-items: center; padding: 8px 10px; }
+.tool > summary::-webkit-details-marker { display: none; }
+.tool > summary::before { content: "▸"; color: var(--muted); }
+.tool[open] > summary::before { content: "▾"; }
+.tool .name { font-family: var(--mono); font-weight: 600; }
+.tool .note { color: var(--muted); font-size: 12px; margin-left: auto; }
+.tool .inner { padding: 0 10px 10px; display: grid; gap: 8px; }
+.tool h3 { margin: 0; font-size: 11px; text-transform: uppercase; letter-spacing: .5px; color: var(--muted); }
+.att { font-family: var(--mono); font-size: 12px; margin: 0; padding-left: 18px; }
+.ok { color: var(--ok); } .bad { color: var(--err); }
+pre { margin: 0; font-family: var(--mono); font-size: 12px; white-space: pre-wrap; word-break: break-word;
+  background: var(--bg); border-radius: 6px; padding: 8px; max-height: 320px; overflow: auto; }
+.empty { color: var(--muted); padding: 30px 0; text-align: center; }
+.error-box { background: var(--err-soft); color: var(--err); padding: 10px; border-radius: 8px; }
+.muted { color: var(--muted); }
+.toolbar { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.bad-lines { margin: 0; padding-left: 18px; font-size: 13px; }
+.bad-lines code { font-family: var(--mono); font-size: 12px; word-break: break-all; }
+</style>
+</head>
+<body>
+<header>
+  <h1>TraceGuard</h1>
+  <span class="meta" id="meta">Loading…</span>
+</header>
+<div id="inputReport" hidden></div>
+
+<section class="stats" id="stats" aria-label="Status counts (click to filter)"></section>
+
+<main>
+  <aside class="panel">
+    <h2>Orders</h2>
+    <div class="stack" style="gap:8px">
+      <input type="text" id="search" placeholder="Search order or tenant…" aria-label="Search orders">
+      <select id="tenantFilter" aria-label="Filter by tenant"><option value="">All tenants</option></select>
+    </div>
+    <div class="filterbar" id="filterbar" hidden></div>
+    <ul class="order-list" id="orders"></ul>
+  </aside>
+  <section class="stack" id="detail">
+    <div class="panel empty">Select an order to investigate.</div>
+  </section>
+</main>
+
+<script>
+"use strict";
+const STATUSES = ["PAID","PARTIALLY_PAID","PARTIALLY_REFUNDED","REFUNDED","DISPUTED","UNPAID","UNKNOWN"];
+const TOOLS = ["get_order","get_payment_events","get_support_notes"];
+const PRESETS = ["Was this order paid?","Why does checkout show a failure?",
+                 "What evidence supports the current status?","Was it refunded?"];
+
+// Anomaly code -> visual category (label, icon, color variable)
+const CATS = {
+  overlimit:  { label: "Over-limit",        icon: "$", color: "err" },
+  duplicate:  { label: "Duplicate",         icon: "⧉", color: "info" },
+  currency:   { label: "Currency mismatch", icon: "¤", color: "orange" },
+  malformed:  { label: "Malformed record",  icon: "!", color: "warn" },
+  conflict:   { label: "Conflict",          icon: "≠", color: "err" },
+  reference:  { label: "Bad reference",     icon: "↗", color: "pink" },
+  missing:    { label: "Missing evidence",  icon: "∅", color: "warn" },
+  injection:  { label: "Untrusted note",    icon: "⛨", color: "violet" },
+  source:     { label: "Untrusted source",  icon: "⊘", color: "info" },
+  tool:       { label: "Tool",              icon: "⚙", color: "teal" },
+};
+const CODE_CAT = {
+  OVER_CAPTURE: "overlimit", OVER_REFUND: "overlimit",
+  DUPLICATE_EVENT_IGNORED: "duplicate", DUPLICATE_TRANSACTION_IGNORED: "duplicate", REDUNDANT_ORDER_DEFINITION: "duplicate",
+  CURRENCY_MISMATCH: "currency",
+  INVALID_RECORD: "malformed", MISSING_EVENT_ID: "malformed", UNSUPPORTED_EVENT_TYPE: "malformed",
+  CORRUPT_LINES_MAY_BELONG_TO_ORDER: "malformed",
+  CONFLICTING_EVENT_IDENTITY: "conflict", CONFLICTING_TRANSACTION_ID: "conflict", CONFLICTING_ORDER_DEFINITION: "conflict",
+  EVENT_ID_REUSED_ACROSS_ORDERS: "conflict", ATTEMPT_CONFLICT: "conflict", TIMELINE_INCONSISTENT: "conflict",
+  INVALID_REFUND_REFERENCE: "reference", INVALID_CHARGEBACK_REFERENCE: "reference",
+  MISSING_ORDER_DEFINITION: "missing", INSUFFICIENT_PAYMENT_EVIDENCE: "missing", ORDER_NOT_FOUND: "missing",
+  SUSPICIOUS_NOTE_CONTENT: "injection", NOTE_EVENT_ID_COLLISION: "injection", NOTE_WITHOUT_ID: "injection",
+  NON_AUTHORITATIVE_SOURCE: "source", FOREIGN_RECORD_DROPPED: "source",
+  TOOL_UNAVAILABLE: "tool", TOOL_RETRIED: "tool",
+};
+const catOf = code => CATS[CODE_CAT[code]] || { label: "Other", icon: "?", color: "muted" };
+const catStyle = c => `--cat: var(--${c.color}); --cat-soft: var(--${c.color}-soft, var(--bg))`;
+
+const KINDS = {
+  ORDER_CREATED:     { k: "k-order", icon: "◎", title: "Order created" },
+  PAYMENT_FAILED:    { k: "k-fail",  icon: "✕", title: "Payment failed" },
+  PAYMENT_CAPTURED:  { k: "k-cap",   icon: "✓", title: "Payment captured" },
+  REFUND_ISSUED:     { k: "k-ref",   icon: "↺", title: "Refund issued" },
+  CHARGEBACK_OPENED: { k: "k-cb",    icon: "⚑", title: "Chargeback opened" },
+  NOTE:              { k: "k-note",  icon: "✎", title: "Support note" },
+};
+
+const state = { overview: null, statusFilter: "", selected: null, records: [], currency: "" };
+
+function el(tag, attrs = {}, ...kids) {           // text-only DOM builder (no innerHTML)
+  const n = document.createElement(tag);
+  for (const [k, v] of Object.entries(attrs)) {
+    if (v == null || v === false) continue;
+    if (k === "class") n.className = v;
+    else if (k.startsWith("on")) n.addEventListener(k.slice(2), v);
+    else n.setAttribute(k, v === true ? "" : v);
+  }
+  for (const kid of kids.flat()) if (kid != null && kid !== false) n.append(kid instanceof Node ? kid : String(kid));
+  return n;
+}
+const pill = (text, cls) => el("span", { class: `pill ${cls}` }, String(text).replaceAll("_", " "));
+const pretty = s => s.replaceAll("_", " ");
+
+async function api(path, body) {
+  const res = await fetch(path, body ? { method: "POST", headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body) } : {});
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || res.statusText);
+  return data;
+}
+
+// ---------------- overview / filters ----------------
+async function loadOverview() {
+  const ov = state.overview = await api("/api/overview");
+  const meta = document.getElementById("meta");
+  meta.replaceChildren(
+    el("span", {}, ov.events_path.split(/[\\/]/).slice(-2).join("/")),
+    el("span", {}, `${ov.line_count} input lines → ${ov.record_count} parsed records`),
+    el("button", { class: "link", onclick: toggleReport }, `${ov.bad_lines.length} unparseable lines`),
+    ov.unattributed_count ? el("button", { class: "link", onclick: toggleReport },
+      `${ov.unattributed_count} record(s) without tenant/order`) : null,
+    el("span", {}, `${ov.orders.length} orders`));
+  const tenants = [...new Set(ov.orders.map(o => o.tenant_id))].sort();
+  const sel = document.getElementById("tenantFilter");
+  tenants.forEach(t => sel.append(el("option", { value: t }, t)));
+  renderStats(); renderOrders();
+}
+
+function toggleReport() {
+  const box = document.getElementById("inputReport");
+  if (!box.hidden) { box.hidden = true; return; }
+  const ov = state.overview;
+  box.replaceChildren(el("div", { class: "panel" },
+    el("div", { class: "toolbar" }, el("h2", {}, "Input file report"),
+      el("button", { class: "link", onclick: () => { box.hidden = true; } }, "Close")),
+    el("p", { class: "muted", style: "margin:0 0 8px" },
+      `The file has ${ov.line_count} non-empty lines. ${ov.record_count} are JSON objects and were parsed. ` +
+      `${ov.bad_lines.length} could not be parsed and are listed below; they are intentionally malformed test data. ` +
+      (ov.unattributed_count ? `${ov.unattributed_count} parsed record(s) lack tenant_id/order_id and belong to no order. ` : "") +
+      `A corrupt line that mentions a tenant and order adds a warning to that order's investigation.`),
+    el("ul", { class: "bad-lines" }, ov.bad_lines.map(b => el("li", {},
+      el("b", {}, `Line ${b.line}: `), b.reason, el("br"), el("code", {}, b.raw))))));
+  box.hidden = false;
+}
+
+function renderStats() {
+  const box = document.getElementById("stats");
+  box.replaceChildren();
+  const counts = Object.fromEntries(STATUSES.map(s => [s, 0]));
+  state.overview.orders.forEach(o => counts[o.status]++);
+  const mk = (label, n, key) => el("button", { class: `stat st-${key || "ALL"}`,
+      "aria-pressed": String(state.statusFilter === key),
+      title: key ? `Show only ${pretty(key)} orders` : "Show all orders",
+      onclick: () => setFilter(state.statusFilter === key ? "" : key) },
+    el("b", {}, n), el("span", {}, label));
+  box.append(mk("All orders", state.overview.orders.length, ""));
+  STATUSES.forEach(s => box.append(mk(pretty(s), counts[s], s)));
+}
+
+function setFilter(status) {
+  state.statusFilter = status;
+  renderStats(); renderOrders(); renderHiddenNotice();
+}
+
+function visibleOrders() {
+  const q = document.getElementById("search").value.trim().toLowerCase();
+  const tenant = document.getElementById("tenantFilter").value;
+  return state.overview.orders.filter(o =>
+    (!tenant || o.tenant_id === tenant) && (!state.statusFilter || o.status === state.statusFilter) &&
+    (!q || `${o.tenant_id} ${o.order_id}`.toLowerCase().includes(q)));
+}
+
+function renderOrders() {
+  const rows = visibleOrders();
+  const bar = document.getElementById("filterbar");
+  const tenant = document.getElementById("tenantFilter").value;
+  const q = document.getElementById("search").value.trim();
+  const active = [state.statusFilter && pretty(state.statusFilter), tenant && `tenant ${tenant}`, q && `"${q}"`].filter(Boolean);
+  bar.hidden = !active.length;
+  bar.replaceChildren(el("span", {}, `Showing ${rows.length} of ${state.overview.orders.length}: ${active.join(", ")}`),
+    el("button", { onclick: clearFilters }, "Clear ✕"));
+
+  const list = document.getElementById("orders");
+  list.replaceChildren();
+  if (!rows.length) list.append(el("li", { class: "empty" }, "No matching orders"));
+  for (const o of rows) {
+    const current = isSelected(o);
+    list.append(el("li", {}, el("button", { "aria-current": String(current), onclick: () => select(o),
+        title: o.anomaly_codes.length ? o.anomaly_codes.join(", ") : "No anomalies" },
+      el("span", {}, el("strong", {}, o.order_id), " ", el("small", {}, o.tenant_id),
+        o.worst_severity ? el("span", { class: `dot ${o.worst_severity}`, "aria-label": `${o.worst_severity} anomalies` }) : null),
+      pill(o.status, `s-${o.status}`))));
+  }
+}
+
+function clearFilters() {
+  document.getElementById("search").value = "";
+  document.getElementById("tenantFilter").value = "";
+  setFilter("");
+}
+const isSelected = o => !!state.selected && state.selected.tenant_id === o.tenant_id && state.selected.order_id === o.order_id;
+
+function renderHiddenNotice() {
+  const slot = document.getElementById("hiddenNotice");
+  if (!slot || !state.selected) return;
+  const hidden = !visibleOrders().some(isSelected);
+  slot.hidden = !hidden;
+  if (!hidden) return;
+  const s = state.selected;
+  slot.replaceChildren(
+    el("span", {}, `${s.order_id} (${s.tenant_id}) is ${pretty(s.status)}, so the current filter hides it in the list.`),
+    el("span", { style: "display:flex;gap:6px" },
+      el("button", { onclick: clearFilters }, "Clear filter"),
+      visibleOrders()[0] ? el("button", { onclick: () => select(visibleOrders()[0]) },
+        `Open first match (${visibleOrders()[0].order_id})`) : null));
+}
+
+// ---------------- investigation ----------------
+async function select(order) {
+  state.selected = order;
+  renderOrders();
+  const qInput = el("input", { type: "text", "aria-label": "Question", value: "Was this order paid?" });
+  const go = el("button", { class: "btn" }, "Investigate");
+  const out = el("div", { class: "stack" });
+  const sims = {};
+  const simGrid = el("div", { class: "sim-grid" }, TOOLS.map(t => {
+    const s = sims[t] = el("select", {}, el("option", { value: "" }, "healthy"),
+      el("option", { value: "f1" }, "fail once (retry recovers)"),
+      el("option", { value: "f2" }, "fail twice (retry recovers)"),
+      el("option", { value: "f9" }, "always fail"),
+      el("option", { value: "t1" }, "time out once"),
+      el("option", { value: "t9" }, "always time out"));
+    return el("label", {}, t, s);
+  }));
+  document.getElementById("detail").replaceChildren(
+    el("div", { class: "notice", id: "hiddenNotice", hidden: true }),
+    el("div", { class: "panel ask" },
+      el("div", { class: "headline" }, el("strong", {}, `${order.order_id}`), el("span", { class: "muted" }, `tenant ${order.tenant_id}`)),
+      el("div", { class: "ask-row" }, qInput, go),
+      el("div", { class: "chips" }, PRESETS.map(p => el("button", { class: "chip", onclick: () => { qInput.value = p; run(); } }, p))),
+      el("details", { class: "sim" }, el("summary", {}, "Simulate tool failures"), simGrid)),
+    out);
+  renderHiddenNotice();
+
+  async function run() {
+    const failures = {}, timeouts = {};
+    for (const [t, s] of Object.entries(sims)) if (s.value)
+      (s.value[0] === "f" ? failures : timeouts)[t] = Number(s.value.slice(1));
+    go.disabled = true; go.textContent = "Investigating…";
+    try {
+      const [inv, recs] = await Promise.all([
+        api("/api/investigate", { tenant_id: order.tenant_id, order_id: order.order_id,
+          question: qInput.value, failures, timeouts, tool_timeout: 0.5 }),
+        api(`/api/records?tenant=${encodeURIComponent(order.tenant_id)}&order=${encodeURIComponent(order.order_id)}`)]);
+      state.records = recs.records;
+      const def = recs.records.find(r => r.record.type === "ORDER_CREATED" && typeof r.record.currency === "string");
+      state.currency = def ? def.record.currency : "";
+      renderResult(out, inv);
+    } catch (e) {
+      out.replaceChildren(el("div", { class: "panel error-box" }, `Request failed: ${e.message}`));
+    } finally { go.disabled = false; go.textContent = "Investigate"; }
+  }
+  go.addEventListener("click", run);
+  qInput.addEventListener("keydown", e => { if (e.key === "Enter") run(); });
+  run();
+}
+
+function money(c, cur = state.currency) {
+  if (c === null || c === undefined) return null;
+  if (typeof c !== "number") return JSON.stringify(c);
+  return (c / 100).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + (cur ? ` ${cur}` : "");
+}
+function fmtTime(s) {
+  const d = new Date(s);
+  return typeof s === "string" && !isNaN(d) ? d.toISOString().replace("T", " ").replace(/\.\d+Z$/, "Z") : String(s ?? "—");
+}
+const idButtons = ids => el("div", { class: "ids" }, ids.map(id =>
+  el("button", { class: "id", title: "Show in timeline", onclick: () => focusEvent(id) }, id)));
+
+function renderResult(out, inv) {
+  const r = inv.result, m = inv.meta;
+  const total = (label, v) => { const x = money(v);
+    return el("div", { class: "total" }, el("span", {}, label),
+      x === null ? el("b", { class: "null", title: "Not reliably established" }, "null") : el("b", {}, x)); };
+  const local = new Date(m.investigated_at);
+
+  const summary = el("div", { class: "panel" },
+    el("div", { class: "headline" }, pill(r.status, `s-${r.status}`), pill(`${r.confidence} confidence`, `c-${r.confidence}`)),
+    el("div", { class: "totals" }, total("Captured", r.captured_cents), total("Refunded", r.refunded_cents),
+      total("Net paid", r.net_paid_cents)),
+    el("p", { class: "explanation" }, r.explanation),
+    el("h2", { style: "margin-top:12px" }, "Evidence"),
+    r.evidence_event_ids.length ? idButtons(r.evidence_event_ids) : el("small", { class: "muted" }, "No evidence could be cited."),
+    el("div", { class: "metagrid" },
+      el("div", {}, el("span", {}, "Tenant"), el("b", {}, m.tenant_id)),
+      el("div", {}, el("span", {}, "Order"), el("b", {}, m.order_id)),
+      el("div", {}, el("span", {}, "Confidence"), el("b", {}, r.confidence)),
+      el("div", {}, el("span", {}, "Investigated at"), el("b", { title: m.investigated_at }, local.toLocaleString())),
+      el("div", {}, el("span", {}, "Duration"), el("b", {}, `${m.duration_ms} ms`)),
+      el("div", {}, el("span", {}, "Intent"), el("b", {}, pretty(m.intent).toLowerCase())),
+      el("div", {}, el("span", {}, "Retry policy"), el("b", {}, `${m.retry_policy.max_attempts} attempts × ${m.retry_policy.timeout_seconds}s`)),
+      el("div", { class: "wide" }, el("span", {}, "Question"), el("b", {}, m.question || "—"))));
+
+  out.replaceChildren(summary, renderTimeline(r), renderAnomalies(r), renderTools(inv.trace), renderRaw(r));
+}
+
+function renderAnomalies(r) {
+  const panel = el("div", { class: "panel" }, el("h2", {}, `Anomalies (${r.anomalies.length})`));
+  if (!r.anomalies.length) { panel.append(el("small", { class: "muted" }, "None: every record was valid and consistent.")); return panel; }
+  const counts = {};
+  r.anomalies.forEach(a => { const c = catOf(a.code); counts[c.label] = counts[c.label] || [c, 0]; counts[c.label][1]++; });
+  panel.append(el("div", { class: "summary-chips" }, Object.values(counts).map(([c, n]) =>
+    el("span", { class: "cat-chip", style: catStyle(c) }, `${c.icon} ${c.label} ×${n}`))));
+  panel.append(el("ul", { class: "anoms" }, r.anomalies.map(a => {
+    const c = catOf(a.code);
+    return el("li", { class: "anom", style: catStyle(c) },
+      el("div", { class: "ico", "aria-hidden": "true" }, c.icon),
+      el("div", { class: "top" }, el("span", { class: "cat" }, c.label), pill(a.severity, `sev-${a.severity}`), el("code", {}, a.code)),
+      el("p", {}, a.message),
+      a.event_ids.length ? idButtons(a.event_ids) : null);
+  })));
+  return panel;
+}
+
+function renderTimeline(r) {
+  const evidence = new Set(r.evidence_event_ids);
+  const byId = {};  // event id -> anomalies citing it
+  r.anomalies.forEach(a => a.event_ids.forEach(id => (byId[id] = byId[id] || []).push(a)));
+  const ts = rec => { const d = new Date(rec.record.occurred_at); return isNaN(d) ? Infinity : d.getTime(); };
+  const recs = [...state.records].sort((a, b) => ts(a) - ts(b) || (a.line - b.line));
+  const seen = new Set();
+  const list = el("ol", { class: "timeline" });
+  for (const item of recs) {
+    const d = item.record, id = typeof d.event_id === "string" ? d.event_id : "";
+    const kind = KINDS[d.type] || { k: "k-other", icon: "?", title: `Unsupported type: ${JSON.stringify(d.type)}` };
+    const tags = [];
+    if (evidence.has(id)) tags.push(el("span", { class: "tag ev" }, "evidence"));
+    if (seen.has(id)) tags.push(el("span", { class: "tag ign" }, "repeat delivery"));
+    const expectedSource = d.type === "ORDER_CREATED" ? "checkout" : d.type === "NOTE" ? null : "payments";
+    if (d.type === "NOTE") tags.push(el("span", { class: "tag ign" }, "untrusted"));
+    else if (expectedSource && d.source !== expectedSource) tags.push(el("span", { class: "tag ign" }, `not from ${expectedSource}`));
+    for (const a of byId[id] || []) {
+      if (a.severity === "info" && a.code !== "SUSPICIOUS_NOTE_CONTENT") continue;
+      tags.push(el("span", { class: `tag ${a.severity === "error" || a.code === "SUSPICIOUS_NOTE_CONTENT" ? "bad" : "warn"}` },
+        `${catOf(a.code).icon} ${catOf(a.code).label}`));
+    }
+    if (id) seen.add(id);
+    const ids = [d.attempt_id && `attempt ${d.attempt_id}`, d.capture_id && `capture ${d.capture_id}`,
+      d.refund_id && `refund ${d.refund_id}`, id || "(no event_id)", d.source && `source ${d.source}`, `line ${item.line}`]
+      .filter(Boolean).map(String);
+    const raw = el("pre", { hidden: true }, JSON.stringify(d, null, 2));
+    const amt = d.amount_cents != null ? money(d.amount_cents, typeof d.currency === "string" ? d.currency : "") : null;
+    list.append(el("li", { class: `tl ${kind.k} ${evidence.has(id) || d.type === "NOTE" ? "" : "dim"}`, "data-id": id },
+      el("div", { class: "node", "aria-hidden": "true" }, kind.icon),
+      el("div", { class: "body", onclick: () => { raw.hidden = !raw.hidden; } },
+        el("div", { class: "row1" }, el("span", { class: "title" }, kind.title), amt ? el("span", { class: "amt" }, amt) : null,
+          tags, el("span", { class: "when" }, fmtTime(d.occurred_at))),
+        el("div", { class: "sub" }, ids.join(" · ")),
+        typeof d.text === "string" ? el("div", { class: "text" }, `“${d.text}”`) : null,
+        raw)));
+  }
+  const legend = el("div", { class: "legend" }, Object.values(KINDS).map(k =>
+    el("span", { class: k.k }, el("i"), k.title)));
+  return el("div", { class: "panel" },
+    el("div", { class: "toolbar" }, el("h2", {}, `Event timeline (${recs.length} records, by occurred_at)`),
+      el("small", { class: "muted" }, "Click an event for raw JSON")),
+    legend, list);
+}
+
+function renderTools(trace) {
+  return el("div", { class: "panel" }, el("h2", {}, "Tool calls"),
+    trace.map(c => {
+      const n = c.output && Array.isArray(c.output.records) ? c.output.records.length : null;
+      return el("details", { class: "tool" },
+        el("summary", {}, el("span", { class: c.ok ? "ok" : "bad" }, c.ok ? "✓" : "✗"),
+          el("span", { class: "name" }, `${c.tool}(${Object.values(c.input).map(v => JSON.stringify(v)).join(", ")})`),
+          el("span", { class: "note" }, `${c.attempts.length} attempt${c.attempts.length > 1 ? "s" : ""}` +
+            (n !== null ? ` · ${n} record${n === 1 ? "" : "s"}` : c.ok ? "" : " · no output"))),
+        el("div", { class: "inner" },
+          el("h3", {}, "Input"), el("pre", {}, JSON.stringify(c.input, null, 2)),
+          el("h3", {}, "Attempts"), el("ol", { class: "att" }, c.attempts.map(a =>
+            el("li", { class: a.endsWith(": ok") ? "ok" : "bad" }, a))),
+          el("h3", {}, "Output"),
+          c.ok ? el("pre", {}, JSON.stringify(c.output, null, 2))
+               : el("p", { class: "bad", style: "margin:0" }, "No output: every attempt failed, so the workflow used its fallback.")));
+    }));
+}
+
+function renderRaw(r) {
+  const pre = el("pre", { hidden: true }, JSON.stringify(r, null, 2));
+  return el("div", { class: "panel" },
+    el("div", { class: "toolbar" }, el("h2", {}, "CLI output (JSON)"),
+      el("button", { class: "link", onclick: e => { pre.hidden = !pre.hidden; e.target.textContent = pre.hidden ? "Show" : "Hide"; } }, "Show")),
+    pre);
+}
+
+function focusEvent(id) {
+  document.querySelectorAll(".tl.hl").forEach(n => n.classList.remove("hl"));
+  const node = [...document.querySelectorAll(".tl")].find(n => n.dataset.id === id);
+  if (node) { node.classList.add("hl"); node.scrollIntoView({ behavior: "smooth", block: "center" }); }
+}
+
+document.getElementById("search").addEventListener("input", () => { renderOrders(); renderHiddenNotice(); });
+document.getElementById("tenantFilter").addEventListener("change", () => { renderOrders(); renderHiddenNotice(); });
+loadOverview().catch(e => { document.getElementById("meta").textContent = `Failed to load: ${e.message}`; });
+</script>
+</body>
+</html>
